@@ -1,7 +1,7 @@
 // Lights Out server for Render (or any Node host)
 //
 // Serves the website (index.html) and runs the AI coach backend from
-// worker.js, so everything lives at one address.
+// worker.js
 //
 // Render settings:
 //   Language: Node
