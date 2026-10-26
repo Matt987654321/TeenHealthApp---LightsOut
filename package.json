@@ -1,0 +1,13 @@
+{
+  "name": "lights-out",
+  "version": "1.0.0",
+  "description": "A daily sleep and stress check-in for teens with an AI sleep coach",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,1138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Lights Out</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;600;700&display=swap">
+<style>
+/* Layout: one calm column, a night-sky header band, tabbed views (Check in / Trends / Insights / History / Help) */
+:root{
+  --bg:#F4F5FB; --surface:#FFFFFF; --ink:#1B1D33; --muted:#5C5F7E; --line:#DCDFEE; --chip:#ECEEF8;
+  --accent:#4A4EC7; --accent-ink:#FFFFFF; --moon:#D99A12; --stress:#D2485F; --good:#21895E;
+  --sky1:#20235A; --sky2:#3A3F8F; --sky-ink:#F2F0FF;
+  --f-display:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r:3px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1022; --surface:#171A33; --ink:#ECEDF8; --muted:#A3A6C6; --line:#2A2E52; --chip:#222648;
+  --accent:#8F93FF; --accent-ink:#0E1022; --moon:#F2C14E; --stress:#FF7D92; --good:#52D49C;
+  --sky1:#151838; --sky2:#272C6B; --sky-ink:#F2F0FF; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0E1022; --surface:#171A33; --ink:#ECEDF8; --muted:#A3A6C6; --line:#2A2E52; --chip:#222648;
+  --accent:#8F93FF; --accent-ink:#0E1022; --moon:#F2C14E; --stress:#FF7D92; --good:#52D49C;
+  --sky1:#151838; --sky2:#272C6B; --sky-ink:#F2F0FF; color-scheme:dark;}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55}
+.wrap{max-width:880px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.15}
+h2{font-size:1.3rem;font-weight:700}
+h3{font-size:1.08rem;font-weight:600}
+p{margin:0}
+.muted{color:var(--muted)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.label{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+
+/* Header band */
+.sky{background:var(--sky1);color:var(--sky-ink);border-bottom:3px solid var(--moon)}
+.sky .wrap{padding-block:22px 0;display:flex;flex-direction:column;gap:18px;position:relative}
+.brand{display:flex;align-items:center;gap:14px}
+.moon{width:40px;height:40px;border-radius:50%;box-shadow:inset -11px -6px 0 0 #F2C14E;transform:rotate(-20deg);flex:none}
+.brand h1{font-size:clamp(1.5rem,4vw,1.9rem);font-weight:700;letter-spacing:-.01em}
+.brand p{opacity:.85;font-size:.98rem}
+.stars{position:absolute;inset:0;pointer-events:none}
+nav.tabs{display:flex;gap:0;flex-wrap:wrap}
+nav.tabs button{font:inherit;font-weight:600;font-size:.92rem;border:0;border-bottom:3px solid transparent;margin-bottom:-3px;background:transparent;color:var(--sky-ink);opacity:.75;padding:10px 14px;border-radius:0;cursor:pointer}
+nav.tabs button[aria-selected="true"]{opacity:1;border-bottom-color:var(--sky-ink);font-weight:700}
+nav.tabs button:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,.chip:focus-within{outline:3px solid var(--accent);outline-offset:2px}
+
+main .wrap{padding-block:24px 56px;display:flex;flex-direction:column;gap:20px}
+.view{display:flex;flex-direction:column;gap:20px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.banner{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;background:var(--chip);border-radius:var(--r);padding:12px 16px;font-size:.92rem}
+
+/* Buttons */
+.btn{font:inherit;font-weight:700;border-radius:3px;padding:10px 16px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.small{padding:6px 11px;font-size:.85rem}
+.btn.danger{color:var(--stress)}
+.btn:hover{filter:brightness(1.05)}
+
+/* Form */
+form{display:flex;flex-direction:column;gap:22px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field input[type="date"],.field input[type="time"],textarea{font:inherit;padding:10px 12px;border-radius:3px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
+textarea{min-height:70px;resize:vertical}
+.calc{font-family:var(--f-mono);font-size:.95rem;padding:10px 12px;border-radius:3px;background:var(--chip);display:flex;align-items:baseline;gap:6px}
+.calc b{font-size:1.25rem;color:var(--moon)}
+fieldset{border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;min-width:0}
+legend{padding:0;margin-bottom:8px}
+.scale{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.chip{position:relative}
+.chip input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.chip span{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border-radius:3px;background:var(--chip);border:1px solid transparent;font-size:.8rem;text-align:center;line-height:1.2}
+.chip span .mono{font-size:1.05rem;font-weight:500}
+.chip input:checked + span{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,var(--surface));font-weight:700}
+.tags{display:flex;flex-wrap:wrap;gap:8px}
+.tags .chip span{flex-direction:row;padding:8px 12px;font-size:.88rem}
+.formfoot{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media (max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:4px}
+.stat .v{font-family:var(--f-mono);font-size:1.6rem;font-weight:500;font-variant-numeric:tabular-nums}
+.stat .s{font-size:.82rem;color:var(--muted)}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:.75rem;font-weight:700;padding:3px 9px;border-radius:3px;background:var(--chip);white-space:nowrap}
+.pill.good{color:var(--good)} .pill.warn{color:var(--moon)} .pill.bad{color:var(--stress)}
+
+/* Chart */
+.chart-wrap{overflow-x:auto}
+.chart-wrap svg{display:block;width:100%;min-width:520px;height:auto}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:.85rem;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:0;margin-right:6px;vertical-align:-1px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.seg button{font:inherit;font-size:.85rem;font-weight:700;padding:6px 12px;border:0;background:var(--surface);color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+
+/* Insights */
+.ins{display:grid;grid-template-columns:1fr;gap:12px}
+.insight{border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:3px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;background:var(--surface)}
+.insight.strong{border-left-color:var(--stress)}
+.insight .tip{font-size:.9rem;color:var(--muted)}
+.compare{display:flex;flex-wrap:wrap;gap:8px 18px;font-family:var(--f-mono);font-size:.88rem}
+.field input[type="text"]{font:inherit;padding:10px 12px;border-radius:3px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
+.coach{border-top:3px solid var(--accent)}
+.recs{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.rec{border:1px solid var(--line);border-radius:3px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;background:var(--bg);min-width:0}
+.rec .num{font-family:var(--f-mono);font-size:.8rem;color:var(--accent);font-weight:500}
+.rec .why{font-size:.9rem;color:var(--muted)}
+.rec .try{font-size:.92rem;border-top:1px solid var(--line);padding-top:8px}
+.rec .src,.cite{font-size:.8rem;color:var(--muted)}
+.rec .src a,.cite a,.refs a{color:var(--accent)}
+.refs{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:10px}
+.refs li{font-size:.92rem}
+.instr{border:1px solid var(--line);border-radius:3px;padding:10px 14px}
+.instr[open]{padding-bottom:14px}
+.instr summary{cursor:pointer;font-weight:600}
+.instr > *+*{margin-top:12px}
+.preview{white-space:pre-wrap;font-family:var(--f-mono);font-size:.78rem;background:var(--bg);border:1px solid var(--line);border-radius:3px;padding:12px;max-height:320px;overflow:auto;margin:0}
+
+/* History */
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.9rem;min-width:560px}
+th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+td.n{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.sample-tag{font-size:.7rem;color:var(--muted);border:1px dashed var(--line);border-radius:3px;padding:1px 5px;margin-left:6px}
+
+/* Help */
+.support{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.support .panel{gap:8px}
+.big{font-family:var(--f-mono);font-size:1.5rem;font-weight:500;user-select:all}
+.breath{display:flex;flex-direction:column;align-items:center;gap:14px;padding:10px 0}
+.circle{width:150px;height:150px;border-radius:0;border:2px solid var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent);display:grid;place-items:center;font-family:var(--f-mono);font-weight:500;font-size:1rem;transform:scale(.7);transition:transform 4s ease-in-out}
+.circle.in{transform:scale(1)}
+@media (prefers-reduced-motion:reduce){.circle{transition:none}}
+.notice{border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:8px;border:1px solid var(--stress);background:color-mix(in srgb,var(--stress) 8%,var(--surface))}
+.feedback{border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:6px;background:var(--chip)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:3px;font-weight:700;font-size:.92rem;z-index:20}
+footer{font-size:.82rem;color:var(--muted)}
+ul.plain{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+
+/* Sleep plan */
+.field input[type="number"],.field select{font:inherit;padding:10px 12px;border-radius:3px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
+table.sched{min-width:720px}
+table.sched input{font:inherit;font-size:.88rem;padding:6px 8px;border:1px solid var(--line);border-radius:3px;background:var(--bg);color:var(--ink);width:100%;min-width:0}
+table.sched input[type="checkbox"]{width:18px;height:18px;accent-color:var(--accent)}
+table.sched input:disabled{opacity:.4}
+table.sched th[scope="row"]{font-size:.85rem;color:var(--ink);text-transform:none;letter-spacing:0}
+table.plan tr.today td{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--line);border-radius:3px}
+.steps > div{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border-left:1px solid var(--line)}
+.steps > div:first-child{border-left:0}
+.steps .v{font-family:var(--f-mono);font-size:1.3rem;font-variant-numeric:tabular-nums}
+.steps .v.accent{color:var(--accent);font-weight:500}
+@media (max-width:560px){.steps{grid-template-columns:repeat(2,1fr)}.steps > div:nth-child(3){border-left:0}.steps > div:nth-child(n+3){border-top:1px solid var(--line)}}
+.import{border:1px dashed var(--line);border-radius:3px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+label.btn{display:inline-block}
+</style>
+
+<header class="sky">
+  <div class="wrap">
+    <div class="brand">
+            <div>
+        <h1>Lights Out</h1>
+        <p>A 30-second daily check-in that shows how your sleep and stress affect each other.</p>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button role="tab" id="tab-checkin" data-view="checkin" aria-selected="true">Check in</button>
+      <button role="tab" id="tab-trends" data-view="trends" aria-selected="false">Trends</button>
+      <button role="tab" id="tab-insights" data-view="insights" aria-selected="false">Insights</button>
+      <button role="tab" id="tab-history" data-view="history" aria-selected="false">History</button>
+      <button role="tab" id="tab-plan" data-view="plan" aria-selected="false">Sleep plan</button>
+      <button role="tab" id="tab-help" data-view="help" aria-selected="false">Get support</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+<div class="wrap">
+  <div class="banner" id="sampleBanner" hidden>
+    <span><b>Sample data.</b> The past three weeks are example entries so you can see how the app works. Add today's check-in, or clear the samples to start fresh.</span>
+    <button class="btn small" id="clearSample" type="button">Clear sample data</button>
+  </div>
+  <div class="banner" id="emptyBanner" hidden>
+    <span>No entries yet. Check in once a day for about a week and your patterns will start showing up.</span>
+    <button class="btn small" id="loadSample" type="button">Load sample data</button>
+  </div>
+
+  <!-- CHECK IN -->
+  <section class="view" id="view-checkin">
+    <div class="panel">
+      <div class="head">
+        <h2>How did you sleep, and how's today going?</h2>
+        <span class="pill" id="streakPill">0-day streak</span>
+      </div>
+      <form id="form" novalidate>
+        <div class="row">
+          <div class="field"><label class="label" for="f-date">Date</label><input type="date" id="f-date" required></div>
+          <div class="field"><label class="label" for="f-bed">Went to bed (last night)</label><input type="time" id="f-bed" value="23:00" required></div>
+          <div class="field"><label class="label" for="f-wake">Woke up</label><input type="time" id="f-wake" value="06:45" required></div>
+          <div class="field"><span class="label">Sleep</span><div class="calc" id="calc"><b>7.8</b> hours</div></div>
+        </div>
+
+        <fieldset><legend class="label">Sleep quality</legend><div class="scale" id="q-quality"></div></fieldset>
+        <fieldset><legend class="label">Stress level today</legend><div class="scale" id="q-stress"></div></fieldset>
+        <fieldset><legend class="label">Mood today</legend><div class="scale" id="q-mood"></div></fieldset>
+
+        <fieldset><legend class="label">Last night and today (tap all that apply)</legend>
+          <div class="tags" id="q-habits"></div>
+        </fieldset>
+        <fieldset><legend class="label">What's going on today?</legend>
+          <div class="tags" id="q-tags"></div>
+        </fieldset>
+        <div class="field"><label class="label" for="f-note">Note (optional)</label><textarea id="f-note" placeholder="Anything on your mind? Only you can see this."></textarea></div>
+        <div class="formfoot">
+          <button class="btn primary" type="submit" id="saveBtn">Save check-in</button>
+          <span class="muted" id="editHint"></span>
+        </div>
+      </form>
+    </div>
+    <div id="afterSave"></div>
+  </section>
+
+  <!-- TRENDS -->
+  <section class="view" id="view-trends" hidden>
+    <div class="stats" id="stats"></div>
+    <div class="panel">
+      <div class="head">
+        <h2>Sleep and stress</h2>
+        <div class="seg" role="group" aria-label="Range">
+          <button type="button" id="r14" data-range="14" aria-pressed="true">14 days</button>
+          <button type="button" id="r30" data-range="30" aria-pressed="false">30 days</button>
+        </div>
+      </div>
+      <div class="legend"><span><i style="background:var(--moon)"></i>Hours of sleep (left)</span><span><i style="background:var(--stress)"></i>Stress, 1–5 (right)</span><span><i style="background:var(--good);height:2px;vertical-align:4px"></i>8-hour minimum for teens</span></div>
+      <div class="chart-wrap" id="chart"></div>
+      <p class="muted" style="font-size:.88rem">The American Academy of Sleep Medicine recommends 8–10 hours a night for ages 13–18. Days with no check-in are left blank.</p>
+    </div>
+  </section>
+
+  <!-- INSIGHTS -->
+  <section class="view" id="view-insights" hidden>
+    <div class="panel coach">
+      <div class="head"><h2>AI sleep coach</h2><span class="pill">Powered by Claude</span></div>
+      <p class="muted">The coach reads your last 14 days of check-ins and the patterns below, then suggests three small changes to try this week. Your notes are never sent.</p>
+      <div class="field"><label class="label" for="f-goal">Your goal (optional)</label>
+        <input type="text" id="f-goal" maxlength="160" placeholder="e.g. feel less tired in first period, stress less before tests"></div>
+      <details class="instr">
+        <summary>Edit the coach's instructions</summary>
+        <div class="field"><label class="label" for="f-instr">Instructions sent to the AI</label>
+          <textarea id="f-instr" rows="9"></textarea></div>
+        <p class="muted" style="font-size:.85rem">Change the coach's personality or focus, like "talk like a track coach" or "focus only on bedtime." Your check-in data, the safety rules, and the answer format are always added automatically, so the coach keeps working. <span id="instrState"></span></p>
+        <div class="formfoot"><button class="btn small" type="button" id="instrReset">Reset to default</button><button class="btn small" type="button" id="instrPreview">Show full prompt</button></div>
+        <pre id="promptPreview" class="preview" hidden></pre>
+      </details>
+      <div class="formfoot">
+        <button class="btn primary" type="button" id="coachBtn">Get my recommendations</button>
+        <button class="btn small" type="button" id="coachStop" hidden>Stop</button>
+        <span class="muted" id="coachStatus" aria-live="polite"></span>
+      </div>
+      <div class="recs" id="coachOut"></div>
+      <p class="muted" style="font-size:.82rem">AI suggestions can be wrong and aren't medical advice. If sleep or stress problems keep going, talk to a parent, school counselor, or doctor.</p>
+    </div>
+    <div class="panel">
+      <div class="head"><h2>Patterns in your data</h2><button class="btn small" id="copySummary" type="button">Copy summary</button></div>
+      <p class="muted">Lights Out compares your days against each other to find what lines up with better sleep and lower stress. These are patterns, not proof, and they get more reliable the more you check in.</p>
+      <div class="ins" id="insights"></div>
+      <textarea id="summaryText" hidden readonly aria-label="Summary text"></textarea>
+    </div>
+  </section>
+
+  <!-- HISTORY -->
+  <section class="view" id="view-history" hidden>
+    <div class="panel">
+      <div class="head"><h2>All check-ins</h2><span class="muted" id="histCount"></span></div>
+      <div class="tbl"><table>
+        <thead><tr><th>Date</th><th>Sleep</th><th>Quality</th><th>Stress</th><th>Mood</th><th>Tags</th><th></th></tr></thead>
+        <tbody id="histBody"></tbody>
+      </table></div>
+      <div class="formfoot"><button class="btn small danger" id="wipeAll" type="button">Delete all data</button><span class="muted" id="wipeHint"></span></div>
+    </div>
+  </section>
+
+  <!-- SLEEP PLAN -->
+  <section class="view" id="view-plan" hidden>
+    <div class="panel">
+      <div class="head"><h2>Tonight's plan</h2><span class="pill" id="tonightPill"></span></div>
+      <div id="tonight"></div>
+    </div>
+    <div class="panel">
+      <div class="head"><h2>Your week</h2><span class="muted" id="planSummary"></span></div>
+      <p class="muted">Built from your schedule below. Lights out means in bed with the phone away, so you're asleep in time for your alarm. On busy nights, the plan shows the most sleep your schedule allows.</p>
+      <div class="tbl"><table class="plan">
+        <thead><tr><th>Night</th><th>Screens off</th><th>Lights out</th><th>Alarm</th><th>Sleep</th><th></th></tr></thead>
+        <tbody id="planBody"></tbody>
+      </table></div>
+      <div class="ins" id="planTips"></div>
+    </div>
+    <div class="panel" id="schedPanel">
+      <div class="head"><h2>Your schedule</h2><button class="btn small" type="button" id="schedReset">Reset to example</button></div>
+      <div class="banner" id="schedExample"><span><b>Example schedule.</b> Import a screenshot or type over these times to build your own plan.</span></div>
+      <div class="import">
+        <h3>Import from a screenshot</h3>
+        <p class="muted">Take a screenshot of your schedule in Infinite Campus (or any school portal). <b>Crop out your name and student ID first.</b> The picture is only used to read your class times and is never saved.</p>
+        <div class="formfoot">
+          <label class="btn small" for="schedFile">Choose screenshot</label>
+          <input type="file" id="schedFile" accept="image/png,image/jpeg,image/webp" class="visually-hidden">
+          <span class="muted" id="schedFileName">No file chosen</span>
+          <button class="btn primary small" type="button" id="schedRead">Read my schedule</button>
+        </div>
+        <p class="muted" id="schedStatus" aria-live="polite"></p>
+      </div>
+      <h3>Type it in</h3>
+      <div class="tbl"><table class="sched">
+        <thead><tr><th>Day</th><th>School</th><th>Starts</th><th>Ends</th><th>After school</th><th>Busy until</th><th>Homework (min)</th></tr></thead>
+        <tbody id="schedBody"></tbody>
+      </table></div>
+      <h3>Your routine</h3>
+      <div class="row">
+        <div class="field"><label class="label" for="s-ready">Getting ready (min)</label><input type="number" id="s-ready" min="0" max="180" step="5"></div>
+        <div class="field"><label class="label" for="s-commute">Commute (min)</label><input type="number" id="s-commute" min="0" max="180" step="5"></div>
+        <div class="field"><label class="label" for="s-dinner">Dinner &amp; chores (min)</label><input type="number" id="s-dinner" min="0" max="180" step="5"></div>
+        <div class="field"><label class="label" for="s-latency">Time to fall asleep (min)</label><input type="number" id="s-latency" min="0" max="120" step="5"></div>
+        <div class="field"><label class="label" for="s-winddown">Wind-down, no screens (min)</label><input type="number" id="s-winddown" min="0" max="120" step="5"></div>
+        <div class="field"><label class="label" for="s-goal">Sleep goal</label><select id="s-goal"><option value="8">8 hours</option><option value="8.5">8.5 hours</option><option value="9">9 hours</option><option value="9.5">9.5 hours</option><option value="10">10 hours</option></select></div>
+        <div class="field"><label class="label" for="s-weekendWake">Weekend wake-up</label><input type="time" id="s-weekendWake"></div>
+      </div>
+      <p class="muted" style="font-size:.85rem">Changes save automatically on this device. Last caffeine is 6 hours before lights out, based on Drake et al., 2013. Teens need 8–10 hours (Paruthi et al., 2016).</p>
+    </div>
+  </section>
+
+  <!-- HELP -->
+  <section class="view" id="view-help" hidden>
+    <div class="support">
+      <div class="panel"><span class="label">Call or text, 24/7</span><div class="big">988</div><p>988 Suicide &amp; Crisis Lifeline. Free, confidential, for any kind of emotional distress, not only crisis.</p></div>
+      <div class="panel"><span class="label">Text, 24/7</span><div class="big">HOME to 741741</div><p>Crisis Text Line. Text with a trained volunteer if talking feels like too much.</p></div>
+      <div class="panel"><span class="label">At school</span><div class="big" style="font-size:1.15rem;font-family:var(--f-display)">Your school counselor</div><p>Counselors help with stress, workload, and sleep. You can bring your Lights Out summary.</p></div>
+    </div>
+    <div class="panel">
+      <h2>One minute of box breathing</h2>
+      <p class="muted">Breathe in for 4, hold for 4, out for 4, hold for 4. Slow breathing can calm your body down before a test or before bed.</p>
+      <div class="breath">
+        <div class="circle" id="circle" aria-live="polite">Ready</div>
+        <button class="btn primary" type="button" id="breathBtn">Start</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Sleep basics that actually help</h2>
+      <ul class="plain">
+        <li>Keep bedtime within about an hour of the same time every night, weekends included.</li>
+        <li>Put your phone away 30–60 minutes before bed, or at least across the room.</li>
+        <li>Skip caffeine (soda, energy drinks, coffee) after about 3 PM.</li>
+        <li>Get some daylight in the morning. It helps set your body clock.</li>
+        <li>If you can't sleep after 20 minutes, get up and do something calm, then try again.</li>
+      </ul>
+    </div>
+      <div class="panel">
+      <h2>The research behind Lights Out</h2>
+      <p class="muted">The app's tips and the AI coach's recommendations are based on these studies. The coach can only cite findings from this list.</p>
+      <ol class="refs" id="refs"></ol>
+    </div>
+  </section>
+
+  <footer>Your check-ins are saved only in this browser on this device. Lights Out is a self-awareness tool, not medical advice. If you're worried about your sleep or mood, talk to a parent, school counselor, or doctor.</footer>
+</div>
+</main>
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script>
+(function(){
+const KEY='lightsout.v1';
+const $=s=>document.querySelector(s);
+const QUALITY=['Rough','Meh','OK','Good','Great'];
+const STRESS=['Chill','Low','Some','High','Max'];
+const MOOD=['Awful','Down','Okay','Good','Great'];
+const HABITS=[['screens','Screens in the hour before bed'],['caffeine','Caffeine after 3 PM'],['exercise','Exercised 20+ min'],['nap','Took a nap']];
+const TAGS=[['test','Test or quiz'],['due','Big assignment due'],['sports','Practice or game'],['work','Work shift'],['social','Social plans'],['sick','Felt sick']];
+const TAGNAME=Object.fromEntries([...HABITS,...TAGS]);
+
+let state={entries:{}};
+try{const raw=localStorage.getItem(KEY); if(raw) state=JSON.parse(raw);}catch(e){}
+if(!state||typeof state!=='object'||!state.entries) state={entries:{}};
+let firstRun=false;
+try{firstRun=localStorage.getItem(KEY)===null;}catch(e){firstRun=true;}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
+
+/* ---------- date + time helpers ---------- */
+const pad=n=>String(n).padStart(2,'0');
+const ymd=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const parseYmd=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);};
+const fmtDate=s=>parseYmd(s).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});
+const toMin=t=>{const [h,m]=t.split(':').map(Number);return h*60+m;};
+const toTime=m=>{m=((Math.round(m)%1440)+1440)%1440;return pad(Math.floor(m/60))+':'+pad(m%60);};
+function sleepHours(bed,wake){let d=toMin(wake)-toMin(bed); if(d<=0) d+=1440; return d/60;}
+/* bedtime on a scale where evening and after-midnight sort correctly (noon = 0) */
+const bedScale=t=>{let m=toMin(t); if(m<720) m+=1440; return m;};
+const fmt12=m=>{m=((Math.round(m)%1440)+1440)%1440;let h=Math.floor(m/60),mm=m%60;const ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+pad(mm)+' '+ap;};
+const avg=a=>a.length?a.reduce((s,x)=>s+x,0)/a.length:NaN;
+const sd=a=>{const m=avg(a);return Math.sqrt(avg(a.map(x=>(x-m)**2)));};
+const r1=x=>Math.round(x*10)/10;
+
+/* ---------- sample data ---------- */
+function makeSample(){
+  let seed=11; const rnd=()=>{seed=(seed*16807)%2147483647;return (seed-1)/2147483646;};
+  const out={}; const today=new Date();
+  const testDays=[17,16,10,9,3,2], dueDays=[13,6,1], sportDays=[19,15,12,8,5,1];
+  for(let i=20;i>=1;i--){
+    const d=new Date(today.getFullYear(),today.getMonth(),today.getDate()-i);
+    const dow=d.getDay(); const weekend=(dow===0||dow===6);
+    const tags=[]; const habits=[];
+    const test=!weekend&&testDays.includes(i), due=!weekend&&dueDays.includes(i), sports=sportDays.includes(i);
+    if(test)tags.push('test'); if(due)tags.push('due'); if(sports)tags.push('sports');
+    if(weekend&&rnd()<.6)tags.push('social');
+    const screens=rnd()<.55||test; const caffeine=rnd()<.25||test; const exercise=sports||rnd()<.25;
+    if(screens)habits.push('screens'); if(caffeine)habits.push('caffeine'); if(exercise)habits.push('exercise');
+    let bed=22*60+40+(screens?45:0)+(test?55:0)+(due?40:0)+(weekend?80:0)+rnd()*30;
+    let wake=weekend?(8*60+50+rnd()*60):(6*60+40+rnd()*10);
+    const bedT=toTime(bed), wakeT=toTime(wake), hrs=sleepHours(bedT,wakeT);
+    const clamp=v=>Math.max(1,Math.min(5,Math.round(v)));
+    const quality=clamp(4.2-(screens?1:0)-(caffeine?.8:0)+rnd()*.8-.4);
+    const stress=clamp(1.9+(test?1.8:0)+(due?1.2:0)+(hrs<7?1:0)-(weekend?.5:0)+rnd()*.8-.4);
+    const mood=clamp(4.3-(stress-2)*.6+(exercise?.6:0)+rnd()*.6-.3);
+    out[ymd(d)]={date:ymd(d),bed:bedT,wake:wakeT,quality,stress,mood,habits,tags,note:'',sample:true};
+  }
+  return out;
+}
+if(firstRun){state.entries=makeSample();save();}
+
+/* ---------- build form controls ---------- */
+function scale(container,name,labels){
+  container.innerHTML=labels.map((l,i)=>`<label class="chip"><input type="radio" name="${name}" id="${name}-${i+1}" value="${i+1}"><span><span class="mono">${i+1}</span>${l}</span></label>`).join('');
+}
+function checks(container,name,items){
+  container.innerHTML=items.map(([k,l])=>`<label class="chip"><input type="checkbox" name="${name}" id="${name}-${k}" value="${k}"><span>${l}</span></label>`).join('');
+}
+scale($('#q-quality'),'quality',QUALITY); scale($('#q-stress'),'stress',STRESS); scale($('#q-mood'),'mood',MOOD);
+checks($('#q-habits'),'habits',HABITS); checks($('#q-tags'),'tags',TAGS);
+
+const fDate=$('#f-date'), fBed=$('#f-bed'), fWake=$('#f-wake');
+function updateCalc(){
+  if(!fBed.value||!fWake.value){$('#calc').innerHTML='<b>–</b> hours';return;}
+  const h=sleepHours(fBed.value,fWake.value);
+  $('#calc').innerHTML=`<b>${r1(h)}</b> hours`;
+}
+[fBed,fWake].forEach(el=>el.addEventListener('input',updateCalc));
+
+function fillForm(dateStr){
+  const e=state.entries[dateStr];
+  fDate.value=dateStr;
+  document.querySelectorAll('#form input[type=radio],#form input[type=checkbox]').forEach(i=>i.checked=false);
+  if(e){
+    fBed.value=e.bed; fWake.value=e.wake; $('#f-note').value=e.note||'';
+    ['quality','stress','mood'].forEach(k=>{const el=document.getElementById(k+'-'+e[k]); if(el)el.checked=true;});
+    (e.habits||[]).forEach(k=>{const el=document.getElementById('habits-'+k); if(el)el.checked=true;});
+    (e.tags||[]).forEach(k=>{const el=document.getElementById('tags-'+k); if(el)el.checked=true;});
+    $('#editHint').textContent=`Editing ${fmtDate(dateStr)}. Saving replaces this entry.`;
+    $('#saveBtn').textContent='Update check-in';
+  }else{
+    $('#f-note').value='';
+    $('#editHint').textContent='';
+    $('#saveBtn').textContent='Save check-in';
+  }
+  updateCalc();
+}
+fDate.addEventListener('change',()=>{ if(fDate.value) fillForm(fDate.value); });
+
+$('#form').addEventListener('submit',ev=>{
+  ev.preventDefault();
+  const val=n=>{const el=document.querySelector(`input[name=${n}]:checked`);return el?Number(el.value):null;};
+  const quality=val('quality'),stress=val('stress'),mood=val('mood');
+  if(!fDate.value||!fBed.value||!fWake.value){toast('Add the date, bedtime and wake time.');return;}
+  if(!quality||!stress||!mood){toast('Pick a sleep quality, stress and mood level.');return;}
+  const habits=[...document.querySelectorAll('input[name=habits]:checked')].map(i=>i.value);
+  const tags=[...document.querySelectorAll('input[name=tags]:checked')].map(i=>i.value);
+  const e={date:fDate.value,bed:fBed.value,wake:fWake.value,quality,stress,mood,habits,tags,note:$('#f-note').value.trim()};
+  state.entries[e.date]=e; save();
+  toast('Saved for '+fmtDate(e.date));
+  showFeedback(e);
+  fillForm(e.date);
+  renderAll();
+});
+
+function showFeedback(e){
+  const h=sleepHours(e.bed,e.wake); const box=$('#afterSave');
+  let msg='';
+  if(h<7) msg=`You got <b class="mono">${r1(h)}</b> hours. That's under the 8–10 hours teens need, so go easy on yourself today and aim for an earlier bedtime tonight.`;
+  else if(h<8) msg=`You got <b class="mono">${r1(h)}</b> hours. Close! Another 30–60 minutes would put you in the healthy range.`;
+  else msg=`You got <b class="mono">${r1(h)}</b> hours. That's right in the healthy range for teens. Nice.`;
+  let extra='';
+  if(e.stress>=4) extra=`<p>Stress is high today. A quick reset can help: try one minute of box breathing on the <b>Get support</b> tab, take a short walk, or split your biggest task into one small next step.</p>`;
+  let notice='';
+  if(e.stress>=4&&e.mood<=2) notice=`<div class="notice"><h3>Rough day. You don't have to handle it alone.</h3><p>Talking to someone helps. Reach out to a parent, friend, or school counselor. You can also call or text <b class="mono">988</b> anytime, day or night, or text <b class="mono">HOME</b> to <b class="mono">741741</b>.</p></div>`;
+  box.innerHTML=`<div class="feedback"><h3>Today's snapshot</h3><p>${msg}</p>${extra}</div>${notice}`;
+}
+
+/* ---------- derived data ---------- */
+function list(){return Object.values(state.entries).sort((a,b)=>a.date<b.date?-1:1).map(e=>({...e,hrs:sleepHours(e.bed,e.wake)}));}
+function streak(){
+  let n=0; const d=new Date();
+  if(!state.entries[ymd(d)]) d.setDate(d.getDate()-1);
+  while(state.entries[ymd(d)]){n++; d.setDate(d.getDate()-1);}
+  return n;
+}
+
+/* ---------- trends ---------- */
+let range=14;
+document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{
+  range=Number(b.dataset.range);
+  document.querySelectorAll('.seg button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+  renderChart();
+}));
+
+function renderStats(){
+  const all=list(); const today=new Date();
+  const cutoff=ymd(new Date(today.getFullYear(),today.getMonth(),today.getDate()-6));
+  const wk=all.filter(e=>e.date>=cutoff);
+  const aS=avg(wk.map(e=>e.hrs)), aX=avg(wk.map(e=>e.stress));
+  const debt=wk.reduce((s,e)=>s+Math.max(0,8-e.hrs),0);
+  const bedSd=wk.length>=3?sd(wk.map(e=>bedScale(e.bed))):NaN;
+  const pill=(cls,t)=>`<span class="pill ${cls}">${t}</span>`;
+  const sleepPill=isNaN(aS)?'':aS>=8?pill('good','Healthy range'):aS>=7?pill('warn','A bit short'):pill('bad','Too little');
+  const stressPill=isNaN(aX)?'':aX<=2.5?pill('good','Manageable'):aX<=3.5?pill('warn','Building up'):pill('bad','High');
+  const debtPill=debt<2?pill('good','Low'):debt<5?pill('warn','Moderate'):pill('bad','High');
+  const consPill=isNaN(bedSd)?'':bedSd<=45?pill('good','Steady'):bedSd<=75?pill('warn','Varies'):pill('bad','All over');
+  $('#stats').innerHTML=`
+    <div class="stat"><span class="label">Avg sleep, 7 days</span><span class="v">${isNaN(aS)?'–':r1(aS)+'h'}</span>${sleepPill}</div>
+    <div class="stat"><span class="label">Avg stress, 7 days</span><span class="v">${isNaN(aX)?'–':r1(aX)+'/5'}</span>${stressPill}</div>
+    <div class="stat"><span class="label">Sleep debt, 7 days</span><span class="v">${r1(debt)}h</span>${debtPill}<span class="s">Hours below 8 per night, added up</span></div>
+    <div class="stat"><span class="label">Bedtime consistency</span><span class="v">${isNaN(bedSd)?'–':'±'+Math.round(bedSd)+'m'}</span>${consPill}<span class="s">How much bedtime shifts</span></div>`;
+  $('#streakPill').textContent=streak()+'-day streak';
+}
+
+function renderChart(){
+  const W=680,H=260,L=40,R=40,T=16,B=40; const pw=W-L-R, ph=H-T-B;
+  const today=new Date(); const days=[];
+  for(let i=range-1;i>=0;i--){const d=new Date(today.getFullYear(),today.getMonth(),today.getDate()-i);days.push(ymd(d));}
+  const step=pw/days.length; const bw=Math.max(4,step*.58);
+  const yS=h=>T+ph-(Math.min(h,12)/12)*ph;       // 0–12 hours
+  const yX=s=>T+ph-((s-1)/4)*ph;                 // 1–5 stress
+  let g='';
+  for(let h=0;h<=12;h+=3){const y=yS(h);g+=`<line x1="${L}" x2="${W-R}" y1="${y}" y2="${y}" stroke="var(--line)" stroke-width="1"/><text x="${L-8}" y="${y+4}" text-anchor="end" font-size="11" fill="var(--muted)" font-family="IBM Plex Mono, monospace">${h}h</text>`;}
+  for(let s=1;s<=5;s++){const y=yX(s);g+=`<text x="${W-R+8}" y="${y+4}" font-size="11" fill="var(--stress)" font-family="IBM Plex Mono, monospace">${s}</text>`;}
+  const y8=yS(8); g+=`<line x1="${L}" x2="${W-R}" y1="${y8}" y2="${y8}" stroke="var(--good)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+  let bars='',pts=[],dots='',labels='';
+  const every=range>14?3:1;
+  days.forEach((ds,i)=>{
+    const cx=L+step*i+step/2; const e=state.entries[ds];
+    if(e){
+      const h=sleepHours(e.bed,e.wake); const y=yS(h);
+      bars+=`<rect x="${cx-bw/2}" y="${y}" width="${bw}" height="${T+ph-y}" fill="var(--moon)" opacity="${h<8?.65:1}"><title>${fmtDate(ds)}: ${r1(h)} hours sleep, stress ${e.stress}/5</title></rect>`;
+      pts.push([cx,yX(e.stress)]);
+      dots+=`<rect x="${cx-3.5}" y="${yX(e.stress)-3.5}" width="7" height="7" fill="var(--stress)"/>`;
+    }else{ if(pts.length) pts.push(null); }
+    if(i%every===0||i===days.length-1){
+      const d=parseYmd(ds);
+      labels+=`<text x="${cx}" y="${H-B+18}" text-anchor="middle" font-size="10.5" fill="var(--muted)" font-family="IBM Plex Mono, monospace">${d.getMonth()+1}/${d.getDate()}</text>`;
+    }
+  });
+  let path='',pen=false;
+  pts.forEach(p=>{ if(!p){pen=false;return;} path+=(pen?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)+' '; pen=true; });
+  const line=path?`<path d="${path}" fill="none" stroke="var(--stress)" stroke-width="2" stroke-linejoin="miter"/>`:'';
+  const empty=pts.filter(Boolean).length===0?`<text x="${W/2}" y="${H/2}" text-anchor="middle" font-size="14" fill="var(--muted)">No check-ins in this range yet</text>`:'';
+  $('#chart').innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Bar chart of nightly sleep hours with a line for daily stress over the last ${range} days">${g}${bars}${line}${dots}${labels}${empty}</svg>`;
+}
+
+/* ---------- insights ---------- */
+function computeInsights(){
+  const all=list(); const out=[];
+  if(all.length<5) return {all,out,note:`You have ${all.length} check-in${all.length===1?'':'s'}. Patterns show up after about 5. Keep going!`};
+  const pick=(f,k)=>all.filter(f).map(e=>e[k]);
+  function cmp(a,b,minN=2){ if(a.length<minN||b.length<minN) return null; return {a:avg(a),b:avg(b),na:a.length,nb:b.length,d:avg(a)-avg(b)}; }
+  const strength=(d,thr)=>Math.abs(d)>=thr*2?'strong':'possible';
+
+  // 1. sleep vs stress
+  const c1=cmp(pick(e=>e.hrs<7,'stress'),pick(e=>e.hrs>=8,'stress'));
+  if(c1&&c1.d>=.5) out.push({lvl:strength(c1.d,.5),title:'Short sleep lines up with higher stress',
+    detail:`After nights under 7 hours, your stress averaged <b>${r1(c1.a)}/5</b>. After 8+ hours it averaged <b>${r1(c1.b)}/5</b>.`,
+    cmp:[`Under 7h: ${r1(c1.a)} (${c1.na} days)`,`8h+: ${r1(c1.b)} (${c1.nb} days)`],
+    tip:'Protecting sleep before a stressful day may help more than staying up late to prepare. In one experiment, teens limited to 6.5 hours in bed for five nights felt more anxious and angry (Baum et al., 2014).'});
+  // 2. screens vs quality
+  const c2=cmp(pick(e=>e.habits.includes('screens'),'quality'),pick(e=>!e.habits.includes('screens'),'quality'));
+  if(c2&&c2.d<=-.5) out.push({lvl:strength(c2.d,.5),title:'Screens before bed lower your sleep quality',
+    detail:`With screens in the hour before bed, your sleep quality averaged <b>${r1(c2.a)}/5</b>, versus <b>${r1(c2.b)}/5</b> without.`,
+    cmp:[`Screens: ${r1(c2.a)} (${c2.na})`,`No screens: ${r1(c2.b)} (${c2.nb})`],
+    tip:'Try charging your phone across the room for a few nights and watch whether this changes. About 90% of studies link screen time to worse sleep (Hale & Guan, 2015).'});
+  // 3. caffeine vs hours
+  const c3=cmp(pick(e=>e.habits.includes('caffeine'),'hrs'),pick(e=>!e.habits.includes('caffeine'),'hrs'));
+  if(c3&&c3.d<=-.4) out.push({lvl:strength(c3.d,.4),title:'Late caffeine costs you sleep',
+    detail:`On nights after caffeine past 3 PM you slept <b>${r1(c3.a)}h</b>, about <b>${Math.round(-c3.d*60)} minutes less</b> than other nights (${r1(c3.b)}h).`,
+    cmp:[`Late caffeine: ${r1(c3.a)}h (${c3.na})`,`None: ${r1(c3.b)}h (${c3.nb})`],
+    tip:'In one study, caffeine taken 6 hours before bed cut sleep by over an hour, and people didn\'t notice (Drake et al., 2013). Switching to water after school is an easy test.'});
+  // 4. exercise vs mood
+  const c4=cmp(pick(e=>e.habits.includes('exercise'),'mood'),pick(e=>!e.habits.includes('exercise'),'mood'));
+  if(c4&&c4.d>=.4) out.push({lvl:strength(c4.d,.4),title:'Moving your body lifts your mood',
+    detail:`On days you exercised 20+ minutes, your mood averaged <b>${r1(c4.a)}/5</b>, versus <b>${r1(c4.b)}/5</b> on other days.`,
+    cmp:[`Exercise: ${r1(c4.a)} (${c4.na})`,`No exercise: ${r1(c4.b)} (${c4.nb})`],
+    tip:'Even a short walk counts. It can be a good reset on high-stress days.'});
+  // 5. tags vs stress
+  TAGS.forEach(([k,l])=>{
+    const c=cmp(pick(e=>e.tags.includes(k),'stress'),pick(e=>!e.tags.includes(k),'stress'));
+    if(c&&c.d>=.7){
+      const s=cmp(pick(e=>e.tags.includes(k),'hrs'),pick(e=>!e.tags.includes(k),'hrs'));
+      const sleepBit=s&&s.d<=-.3?` You also slept about <b>${Math.round(-s.d*60)} minutes less</b> the night before.`:'';
+      out.push({lvl:strength(c.d,.7),title:`"${l}" days are your most stressful`,
+        detail:`Stress averaged <b>${r1(c.a)}/5</b> on these days, versus <b>${r1(c.b)}/5</b> otherwise.${sleepBit}`,
+        cmp:[`${l}: ${r1(c.a)} (${c.na})`,`Other days: ${r1(c.b)} (${c.nb})`],
+        tip:k==='test'?'Studying a little each night beats one late cram session, for both your grade and your sleep.':'Planning ahead for these days, including an earlier bedtime the night before, can soften the hit.'});
+    }
+  });
+  // 6. weekend shift
+  const wkEnd=all.filter(e=>{const d=parseYmd(e.date).getDay();return d===0||d===6;}).map(e=>bedScale(e.bed));
+  const wkDay=all.filter(e=>{const d=parseYmd(e.date).getDay();return d>0&&d<6;}).map(e=>bedScale(e.bed));
+  if(wkEnd.length>=2&&wkDay.length>=3){
+    const shift=avg(wkEnd)-avg(wkDay);
+    if(shift>=60) out.push({lvl:shift>=120?'strong':'possible',title:'Weekends shift your body clock',
+      detail:`Your weekend bedtime averages <b>${fmt12(avg(wkEnd))}</b>, about <b>${r1(shift/60)} hours later</b> than school nights (${fmt12(avg(wkDay))}).`,
+      cmp:[`Weekend: ${fmt12(avg(wkEnd))}`,`School nights: ${fmt12(avg(wkDay))}`],
+      tip:'Big weekend shifts work like jet lag, which is part of why Mondays feel so hard. Try keeping the gap under an hour.'});
+  }
+  // 7. correlation
+  const xs=all.map(e=>e.hrs), ys=all.map(e=>e.stress);
+  const mx=avg(xs),my=avg(ys); const num=xs.reduce((s,x,i)=>s+(x-mx)*(ys[i]-my),0);
+  const den=Math.sqrt(xs.reduce((s,x)=>s+(x-mx)**2,0)*ys.reduce((s,y)=>s+(y-my)**2,0));
+  const r=den?num/den:0;
+  return {all,out,r};
+}
+
+function renderInsights(){
+  const {all,out,note,r}=computeInsights(); const box=$('#insights');
+  if(note){box.innerHTML=`<div class="feedback"><p>${note}</p></div>`;buildSummary(all,[]);return;}
+  let rCard='';
+  if(r!==undefined){
+    const a=Math.abs(r); const word=a>=.5?'strong':a>=.3?'moderate':'weak';
+    rCard=`<div class="insight"><div class="head"><h3>Overall sleep–stress link</h3><span class="pill">${word} link</span></div>
+      <p>Across all ${all.length} check-ins, the correlation between hours slept and stress is <b class="mono">r = ${r.toFixed(2)}</b>. ${r<-.3?'More sleep tends to come with less stress for you.':r>.3?'Interesting: for you, more sleep and more stress tend to show up together. Weekends or busy schedules could explain it.':'So far there is no clear overall link. Keep checking in.'}</p>
+      <p class="tip">r runs from −1 to 1. Closer to −1 means more sleep, less stress.</p></div>`;
+  }
+  const cards=out.sort((a,b)=>(a.lvl==='strong'?0:1)-(b.lvl==='strong'?0:1)).map(i=>`
+    <div class="insight ${i.lvl==='strong'?'strong':''}">
+      <div class="head"><h3>${i.title}</h3><span class="pill ${i.lvl==='strong'?'bad':'warn'}">${i.lvl==='strong'?'Strong pattern':'Possible pattern'}</span></div>
+      <p>${i.detail}</p>
+      <div class="compare">${i.cmp.map(c=>`<span>${c}</span>`).join('')}</div>
+      <p class="tip">${i.tip}</p>
+    </div>`).join('');
+  box.innerHTML=rCard+(cards||'<div class="feedback"><p>No strong patterns yet. That can mean your habits are pretty steady, or that a few more days of check-ins are needed.</p></div>');
+  buildSummary(all,out,r);
+}
+
+function buildSummary(all,out,r){
+  const last=all.slice(-14);
+  const lines=['Lights Out summary ('+(last.length?fmtDate(last[0].date)+' to '+fmtDate(last[last.length-1].date):'no data')+')',
+    `Check-ins: ${last.length}`,
+    `Average sleep: ${r1(avg(last.map(e=>e.hrs)))} hours (goal 8–10)`,
+    `Average stress: ${r1(avg(last.map(e=>e.stress)))}/5`,
+    `Average mood: ${r1(avg(last.map(e=>e.mood)))}/5`,
+    `Nights under 7 hours: ${last.filter(e=>e.hrs<7).length}`];
+  if(out.length){lines.push('Patterns noticed:');out.forEach(i=>lines.push(' - '+i.title));}
+  $('#summaryText').value=lines.join('\n');
+}
+$('#copySummary').addEventListener('click',()=>{
+  const ta=$('#summaryText'); const text=ta.value;
+  const fallback=()=>{ta.hidden=false;ta.style.minHeight='180px';ta.focus();ta.select();toast('Summary selected. Copy it with Ctrl+C or Cmd+C.');};
+  try{navigator.clipboard.writeText(text).then(()=>toast('Summary copied'),fallback);}catch(e){fallback();}
+});
+
+/* ---------- research the app and coach rely on ---------- */
+const RESEARCH=[
+ {
+  "id": "S1",
+  "cite": "Paruthi et al., 2016",
+  "title": "Recommended amount of sleep for pediatric populations (AASM consensus)",
+  "journal": "Journal of Clinical Sleep Medicine",
+  "url": "https://depts.washington.edu/dbpeds/pediatricsleepdurationconsensus.pdf",
+  "finding": "Teens 13–18 need 8–10 hours of sleep regularly. Too little sleep is linked to attention and learning problems, injuries, obesity, depression, and in teens a higher risk of self-harm and suicidal thoughts."
+ },
+ {
+  "id": "S2",
+  "cite": "Wheaton et al., 2018",
+  "title": "Short sleep duration among middle school and high school students, United States, 2015",
+  "journal": "CDC Morbidity and Mortality Weekly Report",
+  "url": "https://www.cdc.gov/mmwr/volumes/67/wr/mm6703a1.htm",
+  "finding": "72.7% of U.S. high school students got less than 8 hours of sleep on school nights."
+ },
+ {
+  "id": "S3",
+  "cite": "Hale & Guan, 2015",
+  "title": "Screen time and sleep among school-aged children and adolescents: a systematic literature review",
+  "journal": "Sleep Medicine Reviews",
+  "url": "https://pubmed.ncbi.nlm.nih.gov/25193149/",
+  "finding": "About 90% of 67 studies found screen time linked to worse sleep, mainly shorter sleep and later bedtimes."
+ },
+ {
+  "id": "S4",
+  "cite": "Drake et al., 2013",
+  "title": "Caffeine effects on sleep taken 0, 3, or 6 hours before going to bed",
+  "journal": "Journal of Clinical Sleep Medicine",
+  "url": "https://aasm.org/late-afternoon-and-early-evening-caffeine-can-disrupt-sleep-at-night/",
+  "finding": "A large dose of caffeine (400 mg) even 6 hours before bed cut measured sleep by more than an hour, and people didn't notice the difference."
+ },
+ {
+  "id": "S5",
+  "cite": "Baum et al., 2014",
+  "title": "Sleep restriction worsens mood and emotion regulation in adolescents",
+  "journal": "Journal of Child Psychology and Psychiatry",
+  "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4047523",
+  "finding": "In 50 teens aged 14–17, five nights of 6.5 hours in bed (vs. 10) led to more anxiety, anger, and fatigue, and a weaker ability to manage negative emotions."
+ },
+ {
+  "id": "S6",
+  "cite": "Lovato et al., 2017",
+  "title": "An investigation of the longitudinal relationship between sleep and depressed mood in developing teens",
+  "journal": "Nature and Science of Sleep",
+  "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5315345",
+  "finding": "In teens followed for a year, low mood predicted worse sleep later, so mood and sleep affect each other. Support for mood matters, not just sleep habits."
+ }
+];
+const researchText=()=>RESEARCH.map(r=>`${r.id} (${r.cite}): ${r.finding}`).join('\n');
+
+/* ---------- AI coach ---------- */
+// Where the AI coach runs:
+//  - inside Claude, it uses Claude's built-in artifact feature (no server needed)
+//  - on your own website, it calls your Cloudflare Worker. Paste its URL here:
+const COACH_URL=''|| // e.g. 'https://lights-out-coach.yourname.workers.dev'
+  // If this page is served by server.js (Render), the coach lives at the same address.
+  (/^https?:$/.test(location.protocol)&&!/github\.io$|claude|anthropic/.test(location.hostname)?location.origin:'');
+let sampleFn=null, coachMode=null, coachCtl=null;
+const coachBtn=$('#coachBtn'), coachOut=$('#coachOut'), coachStatus=$('#coachStatus'), coachStop=$('#coachStop');
+function coachUnavailable(msg){
+  coachMode=null; sampleFn=null; coachBtn.disabled=true;
+  coachStatus.textContent=msg||'The AI coach isn\'t set up on this site yet. The built-in patterns below still work.';
+}
+(async()=>{
+  try{
+    if(window.claude&&window.claude.use){
+      sampleFn=await window.claude.use('sample');
+      if(sampleFn){coachMode='claude';return;}
+      coachUnavailable('The AI coach isn\'t available in this view. The built-in patterns below still work.');
+      return;
+    }
+    if(COACH_URL){coachMode='server';return;}
+    coachUnavailable();
+  }catch(e){coachUnavailable();}
+})();
+function coachPayload(){
+  const {out,r}=computeInsights();
+  const instr=$('#f-instr').value.trim();
+  return {
+    entries:list().slice(-14).map(e=>({date:e.date,bed:e.bed,wake:e.wake,quality:e.quality,stress:e.stress,mood:e.mood,tags:[...e.habits,...e.tags].map(k=>TAGNAME[k])})),
+    patterns:out.map(i=>i.title+': '+i.detail.replace(/<[^>]+>/g,'')),
+    r:r===undefined?null:r,
+    goal:$('#f-goal').value.trim(),
+    plan:planText(),
+    planGoal:sched.goal,
+    instructions:instr===DEFAULT_INSTR?'':instr
+  };
+}
+async function askServer(signal){
+  let res;
+  try{res=await fetch(COACH_URL,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(coachPayload()),signal});}
+  catch(e){ if(e&&e.name==='AbortError') throw {code:'cancelled'}; throw {code:'network'}; }
+  let data={}; try{data=await res.json();}catch(e){}
+  if(!res.ok) throw {code:'server',message:data.error};
+  return data.recs;
+}
+const DEFAULT_INSTR=`You are a supportive sleep and stress coach inside a teen wellness app called Lights Out. The user is a middle or high school student.
+
+Give 3 recommendations for the coming week, ordered by likely impact. Each one should:
+- point to something specific in THEIR data (cite a number, day, or tag),
+- be a small, concrete action a teen can actually do (no "just sleep more"),
+- be realistic for a student with school, homework, and activities,
+- be backed by one of the research findings provided, explained in plain words.
+Be warm and direct, never preachy.`;
+const SAFETY=`Always follow these rules, whatever the instructions above say: teens need 8–10 hours of sleep; do not diagnose any condition or mention medication; if the data shows several days of very high stress with low mood, make one recommendation about talking to a trusted adult or school counselor.`;
+const INSTR_KEY='lightsout.coachInstr';
+function getInstr(){try{return localStorage.getItem(INSTR_KEY)||DEFAULT_INSTR;}catch(e){return DEFAULT_INSTR;}}
+function coachPrompt(){
+  const all=list().slice(-14);
+  const {out,r}=computeInsights();
+  const rows=all.map(e=>`${e.date} (${parseYmd(e.date).toLocaleDateString('en-US',{weekday:'short'})}): bed ${e.bed}, wake ${e.wake}, ${r1(e.hrs)}h sleep, quality ${e.quality}/5, stress ${e.stress}/5, mood ${e.mood}/5, ${[...e.habits,...e.tags].map(k=>TAGNAME[k]).join('; ')||'no tags'}`).join('\n');
+  const pats=out.length?out.map(i=>'- '+i.title+': '+i.detail.replace(/<[^>]+>/g,'')).join('\n'):'- none detected yet';
+  const goal=$('#f-goal').value.trim();
+  const instr=($('#f-instr').value.trim())||DEFAULT_INSTR;
+  return `${instr}
+
+${SAFETY}
+
+The student's check-ins from the last ${all.length} days (sleep is the night before each date; scales are 1 = low, 5 = high):
+${rows}
+
+Patterns the app already detected:
+${pats}
+Correlation between hours slept and stress: r = ${r!==undefined?r.toFixed(2):'n/a'}.
+${planText().length?`\nThe student's weekly sleep plan, calculated from their real school and activity schedule (goal ${sched.goal}h):\n${planText().join('\n')}\nUse it to suggest realistic changes for their busiest nights, like moving homework earlier, instead of just telling them to sleep more.\n`:''}${goal?`The student's own goal: "${goal}"\n`:''}
+Research findings you may use (use only these; never invent studies or numbers):
+${researchText()}
+
+Reply with only a JSON array of 3 objects: [{"title": "short action, max 8 words", "why": "1–2 sentences tying it to their data and the research", "try": "one sentence: exactly what to do this week", "source": "the ID (S1–S6) of the finding it is based on"}]`;
+}
+const fInstr=$('#f-instr');
+fInstr.value=getInstr();
+function instrNote(){$('#instrState').textContent=fInstr.value.trim()===DEFAULT_INSTR?'Using the default instructions.':'Using your custom instructions.';}
+fInstr.addEventListener('input',()=>{try{localStorage.setItem(INSTR_KEY,fInstr.value);}catch(e){}instrNote();});
+$('#instrReset').addEventListener('click',()=>{fInstr.value=DEFAULT_INSTR;try{localStorage.removeItem(INSTR_KEY);}catch(e){}instrNote();toast('Instructions reset');});
+$('#instrPreview').addEventListener('click',()=>{const pv=$('#promptPreview');pv.hidden=!pv.hidden;if(!pv.hidden)pv.textContent=coachPrompt();$('#instrPreview').textContent=pv.hidden?'Show full prompt':'Hide full prompt';});
+instrNote();
+function renderRecs(recs){
+  coachOut.innerHTML='';
+  recs.slice(0,3).forEach((r,i)=>{
+    const d=document.createElement('div'); d.className='rec';
+    const n=document.createElement('span'); n.className='num'; n.textContent='0'+(i+1);
+    const h=document.createElement('h3'); h.textContent=String(r.title||'');
+    const w=document.createElement('p'); w.className='why'; w.textContent=String(r.why||'');
+    const t=document.createElement('p'); t.className='try'; t.innerHTML='<b>Try this:</b> '; t.append(String(r.try||''));
+    const src=RESEARCH.find(x=>x.id===String(r.source||'').trim());
+    d.append(n,h,w,t);
+    if(src){const c=document.createElement('p');c.className='src';c.append('Based on: ');const a=document.createElement('a');a.href=src.url;a.target='_blank';a.rel='noopener';a.textContent=src.cite;c.append(a,' · '+src.journal);d.append(c);}
+    coachOut.append(d);
+  });
+}
+const coachErrors={not_granted:'The coach needs your permission to use Claude. Reload the page to be asked again.',sampling_disabled:'AI isn\'t available on this account.',rate_limited:'Too many requests. Try again in a few minutes.',session_expired:'Sign in to Claude again, then retry.',refused:'The coach couldn\'t answer that. Try a different goal.',invalid_json:'The coach\'s answer came back garbled. Try again.'};
+coachBtn.addEventListener('click',async()=>{
+  if(!coachMode) return;
+  if(list().length<3){coachStatus.textContent='Add at least 3 check-ins first so the coach has something to work with.';return;}
+  coachCtl=new AbortController();
+  coachBtn.disabled=true; coachStop.hidden=false; coachOut.innerHTML='';
+  coachStatus.textContent='Thinking… this can take up to a minute.';
+  try{
+    const recs=coachMode==='server'?await askServer(coachCtl.signal):await sampleFn.json(coachPrompt(),{signal:coachCtl.signal,cache:false});
+    if(!Array.isArray(recs)||!recs.length) throw {code:'invalid_json'};
+    renderRecs(recs); coachStatus.textContent='Here\'s your plan for this week.';
+  }catch(e){
+    const code=e&&e.code;
+    if(code==='cancelled') coachStatus.textContent='Stopped.';
+    else if(['not_granted','sampling_disabled','not_declared','capability_disabled','capability_removed'].includes(code)) coachUnavailable(coachErrors[code]||undefined);
+    else if(code==='server') coachStatus.textContent=e.message||'The coach couldn\'t answer right now. Try again.';
+    else if(code==='network') coachStatus.textContent='Couldn\'t reach the coach. Check your internet connection and try again.';
+    else coachStatus.textContent=coachErrors[code]||'Something went wrong reaching the coach. Try again.';
+  }finally{
+    coachBtn.disabled=!coachMode;
+    coachStop.hidden=true;
+  }
+});
+coachStop.addEventListener('click',()=>coachCtl&&coachCtl.abort());
+
+/* ---------- sleep plan: schedule + bedtime planner ---------- */
+const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const DAYLONG={Mon:'Monday',Tue:'Tuesday',Wed:'Wednesday',Thu:'Thursday',Fri:'Friday',Sat:'Saturday',Sun:'Sunday'};
+function exampleSchedule(){
+  const school=(act,busy,hw)=>({school:true,start:'07:20',end:'14:25',act,busy,hw});
+  return {example:true,ready:35,commute:20,dinner:45,latency:20,winddown:45,goal:9,weekendWake:'08:30',
+    days:{Mon:school('','',90),Tue:school('Practice','18:30',120),Wed:school('','',90),Thu:school('Work shift','20:30',60),Fri:school('','',30),
+          Sat:{school:false,start:'',end:'',act:'Work shift','busy':'16:00',hw:0},Sun:{school:false,start:'',end:'',act:'',busy:'',hw:90}}};
+}
+let sched=(state.schedule&&state.schedule.days)?state.schedule:exampleSchedule();
+const isTime=t=>/^\d{2}:\d{2}$/.test(String(t||''));
+const hm=m=>{m=Math.max(0,Math.round(m));return Math.floor(m/60)+'h '+pad(m%60)+'m';};
+
+function buildSchedTable(){
+  $('#schedBody').innerHTML=DAYS.map(d=>{
+    const x=sched.days[d];
+    return `<tr>
+      <th scope="row">${d}</th>
+      <td><input type="checkbox" id="s-${d}-school" ${x.school?'checked':''} aria-label="${DAYLONG[d]} is a school day"></td>
+      <td><input type="time" id="s-${d}-start" value="${x.start||''}" aria-label="${DAYLONG[d]} school starts" ${x.school?'':'disabled'}></td>
+      <td><input type="time" id="s-${d}-end" value="${x.end||''}" aria-label="${DAYLONG[d]} school ends" ${x.school?'':'disabled'}></td>
+      <td><input type="text" id="s-${d}-act" value="${(x.act||'').replace(/"/g,'&quot;')}" maxlength="40" placeholder="Practice, work, club…" aria-label="${DAYLONG[d]} activity"></td>
+      <td><input type="time" id="s-${d}-busy" value="${x.busy||''}" aria-label="${DAYLONG[d]} busy until"></td>
+      <td><input type="number" id="s-${d}-hw" value="${x.hw||0}" min="0" max="360" step="15" aria-label="${DAYLONG[d]} homework minutes"></td>
+    </tr>`;}).join('');
+  ['ready','commute','dinner','latency','winddown'].forEach(k=>$('#s-'+k).value=sched[k]);
+  $('#s-goal').value=String(sched.goal); $('#s-weekendWake').value=sched.weekendWake;
+  $('#schedExample').hidden=!sched.example;
+}
+function readSchedForm(){
+  DAYS.forEach(d=>{
+    const g=k=>document.getElementById(`s-${d}-${k}`);
+    const school=g('school').checked;
+    g('start').disabled=!school; g('end').disabled=!school;
+    sched.days[d]={school,start:g('start').value,end:g('end').value,act:g('act').value.trim(),busy:g('busy').value,hw:Math.max(0,Math.min(360,Number(g('hw').value)||0))};
+  });
+  ['ready','commute','dinner','latency','winddown'].forEach(k=>sched[k]=Math.max(0,Math.min(180,Number($('#s-'+k).value)||0)));
+  sched.goal=Number($('#s-goal').value)||9; sched.weekendWake=$('#s-weekendWake').value||'08:30';
+}
+function saveSched(){state.schedule=sched;save();}
+
+/* One "night" = the evening of one day and the morning after it.
+   Times are minutes from midnight at the start of the evening's day, so
+   the next morning's 6:55 AM is 1440 + 415. */
+function planNights(){
+  const S=sched, out=[];
+  for(let i=0;i<7;i++){
+    const eve=DAYS[i], morn=DAYS[(i+1)%7], de=S.days[eve], dm=S.days[morn];
+    const schoolMorning=dm.school&&isTime(dm.start);
+    const wake=1440+(schoolMorning?toMin(dm.start)-S.ready-S.commute:toMin(S.weekendWake));
+    const ideal=wake-S.goal*60-S.latency;              // lights out that gives the full goal
+    let busy=null, reason=[];
+    if(de.school&&isTime(de.end)){busy=toMin(de.end);reason.push('school');}
+    if(isTime(de.busy)){let b=toMin(de.busy); if(b<240) b+=1440; if(busy===null||b>busy){busy=b;} reason.push(de.act||'activity');}
+    const hw=de.hw||0;
+    // Earliest you can be done: busy time + dinner/chores + homework.
+    const done=busy===null?(hw?18*60+hw:null):busy+S.dinner+hw;
+    const squeezed=done!==null&&done>ideal;
+    const bed=squeezed?done:ideal;
+    const sleep=wake-bed-S.latency;
+    out.push({eve,morn,wake,ideal,bed,sleep,squeezed,done,hw,reason:[...new Set(reason)],act:de.act,schoolMorning});
+  }
+  return out;
+}
+function statusOf(n){
+  if(n.sleep>=sched.goal*60) return ['good','On goal'];
+  if(n.sleep>=480) return ['good','8+ hours'];
+  if(n.sleep>=420) return ['warn','Tight'];
+  return ['bad','Short'];
+}
+function todayIdx(){return (new Date().getDay()+6)%7;}
+
+function renderPlan(){
+  const nights=planNights();
+  // Week table
+  $('#planBody').innerHTML=nights.map((n,i)=>{
+    const [cls,label]=statusOf(n);
+    const today=i===todayIdx();
+    return `<tr${today?' class="today"':''}>
+      <td>${DAYLONG[n.eve]} night${today?' <span class="sample-tag">tonight</span>':''}<br><span class="muted" style="font-size:.78rem">${n.schoolMorning?'School':'No school'} ${n.morn}</span></td>
+      <td class="n">${fmt12(n.bed-sched.winddown)}</td>
+      <td class="n"><b>${fmt12(n.bed)}</b></td>
+      <td class="n">${fmt12(n.wake)}</td>
+      <td class="n">${hm(n.sleep)}</td>
+      <td><span class="pill ${cls}">${label}</span></td>
+    </tr>`;}).join('');
+
+  // Tonight card
+  const t=nights[todayIdx()], [tc,tl]=statusOf(t);
+  $('#tonightPill').className='pill '+tc; $('#tonightPill').textContent=tl;
+  $('#tonight').innerHTML=`<div class="steps">
+    <div><span class="label">Last caffeine</span><span class="v">${fmt12(t.bed-360)}</span></div>
+    <div><span class="label">Screens off</span><span class="v">${fmt12(t.bed-sched.winddown)}</span></div>
+    <div><span class="label">Lights out</span><span class="v accent">${fmt12(t.bed)}</span></div>
+    <div><span class="label">Alarm</span><span class="v">${fmt12(t.wake)}</span></div>
+  </div>
+  <p>That gives you about <b class="mono">${hm(t.sleep)}</b> of sleep before ${DAYLONG[t.morn]}${t.schoolMorning?'':' (no school)'}.${t.squeezed?` Your evening is full until about ${fmt12(t.done)}, so this is the best you can do tonight without changing your schedule.`:''}</p>`;
+
+  // Tips
+  const tips=[];
+  const squeezed=nights.filter(n=>n.squeezed).sort((a,b)=>a.sleep-b.sleep);
+  squeezed.forEach((n,i)=>{
+    const need=Math.min(n.hw,n.done-n.ideal);
+    const what=n.act?`${n.act} until ${fmt12(n.done-sched.dinner-n.hw)}`:'school';
+    tips.push({lvl:n.sleep<420?'strong':'possible',title:i===0?`${DAYLONG[n.eve]} is your tightest night`:`${DAYLONG[n.eve]} is also tight`,
+      detail:`With ${what}, dinner, and ${n.hw} minutes of homework, you're busy until about <b>${fmt12(n.done)}</b>. That leaves <b>${hm(n.sleep)}</b> instead of ${sched.goal} hours.`,
+      tip:need>0&&n.hw?`Moving ${Math.round(need)} minutes of ${DAYLONG[n.eve]}'s homework to a study hall, lunch, the bus, or the weekend would give you back the full ${sched.goal} hours.`:'Look for one thing to move earlier or shorten on this day. Even 30 minutes helps.'});
+  });
+  const short=nights.filter(n=>n.sleep<480).length;
+  if(!squeezed.length) tips.push({lvl:'possible',title:'Your schedule has room for full sleep',detail:`Every night of your week fits ${sched.goal} hours if you keep to your lights-out times.`,tip:'The hard part is the routine, not the schedule. Set your phone to remind you at screens-off time.'});
+  // Compare to real bedtimes from check-ins
+  const recent=list().filter(e=>{const d=parseYmd(e.date).getDay();return d>0&&d<6;}).slice(-5);
+  if(recent.length>=3){
+    const schoolNights=nights.filter(n=>n.schoolMorning);
+    // Both measured in minutes from the start of the evening's day (after-midnight bedtimes count as 1440+).
+    const planScale=avg(schoolNights.map(n=>n.bed)), realBed=avg(recent.map(e=>bedScale(e.bed)));
+    const gap=realBed-planScale;
+    if(gap>=30){
+      const steps=Math.ceil(gap/15);
+      tips.push({lvl:gap>=90?'strong':'possible',title:'Get there in small steps',
+        detail:`On recent school nights you went to bed around <b>${fmt12(realBed)}</b>, about <b>${hm(gap)}</b> later than your plan's average of ${fmt12(planScale)}.`,
+        tip:`Don't try to fix it all at once. Move bedtime 15 minutes earlier every 2–3 nights. You'll reach your plan in about ${steps} steps. Waking at the same time every day makes it easier to fall asleep earlier.`});
+    }
+  }
+  // Weekend shift
+  const wk=nights.filter(n=>n.schoolMorning).map(n=>n.bed), we=nights.filter(n=>!n.schoolMorning).map(n=>n.bed);
+  if(wk.length&&we.length&&avg(we)-avg(wk)>90) tips.push({lvl:'possible',title:'Weekend wake-up is much later',detail:`Your weekend lights-out averages ${hm(avg(we)-avg(wk))} later than school nights.`,tip:'Waking within about an hour of your school-day time keeps Monday mornings from feeling like jet lag.'});
+  $('#planTips').innerHTML=tips.map(i=>`<div class="insight ${i.lvl==='strong'?'strong':''}">
+      <div class="head"><h3>${i.title}</h3><span class="pill ${i.lvl==='strong'?'bad':'warn'}">${i.lvl==='strong'?'Big impact':'Worth trying'}</span></div>
+      <p>${i.detail}</p><p class="tip">${i.tip}</p></div>`).join('');
+  $('#planSummary').textContent=`${7-short} of 7 nights reach 8+ hours with this plan.`;
+}
+function planText(){
+  if(sched.example) return [];
+  const lines=planNights().map(n=>`${n.eve} night → ${n.morn}: wake ${toTime(n.wake)}, lights out ${toTime(n.bed)}, ${r1(n.sleep/60)}h possible${n.squeezed?` (busy until ${toTime(n.done)}: ${n.reason.join(' + ')}, dinner, ${n.hw} min homework)`:''}`);
+  return lines;
+}
+
+/* Schedule form events */
+function onSchedInput(){readSchedForm(); if(sched.example){sched.example=false;$('#schedExample').hidden=true;} saveSched(); renderPlan();}
+$('#view-plan').addEventListener('input',e=>{if(e.target.closest('#schedPanel')&&e.target.id!=='schedFile') onSchedInput();});
+$('#view-plan').addEventListener('change',e=>{if(e.target.closest('#schedPanel')&&e.target.type==='checkbox') onSchedInput();});
+$('#schedReset').addEventListener('click',()=>{sched=exampleSchedule();state.schedule=null;save();buildSchedTable();renderPlan();toast('Example schedule restored');});
+
+/* Screenshot import */
+let schedImgOK=false;
+(async()=>{
+  for(let i=0;i<40&&coachMode===null&&sampleFn===null;i++){await new Promise(r=>setTimeout(r,250));}
+  if(coachMode==='claude'){try{const l=await sampleFn.limits();schedImgOK=!!(l&&l.images);}catch(e){schedImgOK=false;}}
+  else if(coachMode==='server') schedImgOK=true;
+  if(!schedImgOK){$('#schedRead').disabled=true;$('#schedStatus').textContent='Screenshot reading needs the AI coach. You can still type your schedule below.';}
+})();
+function shrinkImage(file){
+  return new Promise((resolve,reject)=>{
+    const img=new Image(); const url=URL.createObjectURL(file);
+    img.onload=()=>{const max=1600,k=Math.min(1,max/Math.max(img.width,img.height));
+      const c=document.createElement('canvas');c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);
+      c.toBlob(b=>b?resolve(b):reject(new Error('resize')),'image/jpeg',0.85);};
+    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('load'));};
+    img.src=url;
+  });
+}
+const SCHED_PROMPT=`This image is a screenshot of a student's class schedule, probably from Infinite Campus or a similar school portal. Find the school-day times.
+For each weekday (Mon–Fri), give the start time of the first class or period and the end time of the last class, in 24-hour HH:MM. If the screenshot shows a single day, or every day has the same bell schedule, use those times for every weekday. Use null for a day with no school or a day you can't see. Ignore lunch, passing periods, and teacher or room details. Do not include any names, ID numbers, or other personal information.
+Reply with only JSON: {"days":{"Mon":{"start":"07:45","end":"14:50"},"Tue":{...},"Wed":{...},"Thu":{...},"Fri":{...}},"note":"one short sentence about anything that was unclear, or an empty string"}`;
+function applySchedule(res){
+  let n=0;
+  ['Mon','Tue','Wed','Thu','Fri'].forEach(d=>{
+    const x=res&&res.days&&res.days[d];
+    if(x&&isTime(x.start)&&isTime(x.end)&&toMin(x.end)>toMin(x.start)){Object.assign(sched.days[d],{school:true,start:x.start,end:x.end});n++;}
+  });
+  return n;
+}
+$('#schedRead').addEventListener('click',async()=>{
+  const f=$('#schedFile').files[0];
+  if(!f){$('#schedStatus').textContent='Choose a screenshot first.';return;}
+  if(!/^image\/(png|jpeg|webp)$/.test(f.type)){$('#schedStatus').textContent='Use a PNG, JPG, or WebP screenshot.';return;}
+  $('#schedRead').disabled=true; $('#schedStatus').textContent='Reading your schedule… this can take up to a minute.';
+  try{
+    const blob=await shrinkImage(f);
+    let res;
+    if(coachMode==='claude'){
+      res=await sampleFn.json(SCHED_PROMPT,{images:blob,cache:false});
+    }else{
+      const b64=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(',')[1]);r.onerror=no;r.readAsDataURL(blob);});
+      const resp=await fetch(new URL('/schedule',COACH_URL),{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({image:b64,mediaType:'image/jpeg'})});
+      const data=await resp.json().catch(()=>({}));
+      if(!resp.ok) throw {code:'server',message:data.error};
+      res=data;
+    }
+    const n=applySchedule(res);
+    if(!n){$('#schedStatus').textContent='Couldn\'t find class times in that picture. Try a clearer screenshot, or type them in below.';return;}
+    sched.example=false; saveSched(); buildSchedTable(); renderPlan();
+    $('#schedStatus').textContent=`Found times for ${n} day${n===1?'':'s'}. Check them below and fix anything that looks wrong.${res.note?' Note: '+String(res.note).slice(0,160):''}`;
+  }catch(e){
+    const code=e&&e.code;
+    $('#schedStatus').textContent=code==='server'?(e.message||'The server couldn\'t read that picture.'):code==='not_granted'?'Reading the screenshot needs your permission to use Claude.':code==='image_rejected'?'That image couldn\'t be read. Try a different screenshot.':'Couldn\'t read the screenshot. Try again, or type your schedule in below.';
+  }finally{ $('#schedRead').disabled=!schedImgOK; }
+});
+buildSchedTable();
+$('#schedFile').addEventListener('change',()=>{const f=$('#schedFile').files[0];$('#schedFileName').textContent=f?f.name:'No file chosen';});
+
+/* ---------- history ---------- */
+let pendingDelete=null, wipeArmed=false;
+function renderHistory(){
+  const all=list().reverse();
+  $('#histCount').textContent=all.length+' entr'+(all.length===1?'y':'ies');
+  $('#histBody').innerHTML=all.map(e=>`<tr>
+    <td>${fmtDate(e.date)}${e.sample?'<span class="sample-tag">sample</span>':''}</td>
+    <td class="n">${r1(e.hrs)}h<br><span class="muted" style="font-size:.78rem">${fmt12(toMin(e.bed))}–${fmt12(toMin(e.wake))}</span></td>
+    <td class="n">${e.quality}</td><td class="n" style="color:${e.stress>=4?'var(--stress)':'inherit'}">${e.stress}</td><td class="n">${e.mood}</td>
+    <td>${[...e.habits,...e.tags].map(k=>TAGNAME[k]).join(', ')||'<span class="muted">–</span>'}</td>
+    <td style="white-space:nowrap"><button class="btn small" data-edit="${e.date}" type="button">Edit</button> <button class="btn small danger" data-del="${e.date}" type="button">${pendingDelete===e.date?'Confirm':'Delete'}</button></td>
+  </tr>`).join('')||'<tr><td colspan="7" class="muted">No check-ins yet.</td></tr>';
+}
+$('#histBody').addEventListener('click',ev=>{
+  const ed=ev.target.closest('[data-edit]'), dl=ev.target.closest('[data-del]');
+  if(ed){fillForm(ed.dataset.edit);show('checkin');window.scrollTo({top:0,behavior:'smooth'});}
+  if(dl){const d=dl.dataset.del;
+    if(pendingDelete===d){delete state.entries[d];pendingDelete=null;save();toast('Deleted');renderAll();}
+    else{pendingDelete=d;renderHistory();}}
+});
+$('#wipeAll').addEventListener('click',()=>{
+  if(!wipeArmed){wipeArmed=true;$('#wipeAll').textContent='Yes, delete everything';$('#wipeHint').textContent='This can\'t be undone.';return;}
+  state.entries={};save();wipeArmed=false;$('#wipeAll').textContent='Delete all data';$('#wipeHint').textContent='';toast('All data deleted');fillForm(fDate.value);renderAll();
+});
+
+/* ---------- sample banners ---------- */
+$('#clearSample').addEventListener('click',()=>{
+  Object.keys(state.entries).forEach(k=>{if(state.entries[k].sample)delete state.entries[k];});
+  save();toast('Sample data cleared');renderAll();
+});
+$('#loadSample').addEventListener('click',()=>{
+  const s=makeSample(); Object.keys(s).forEach(k=>{if(!state.entries[k])state.entries[k]=s[k];});
+  save();toast('Sample data loaded');renderAll();
+});
+
+/* ---------- tabs ---------- */
+function show(v){
+  document.querySelectorAll('nav.tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.view===v)));
+  document.querySelectorAll('.view').forEach(s=>s.hidden=s.id!=='view-'+v);
+}
+document.querySelectorAll('nav.tabs button').forEach(b=>b.addEventListener('click',()=>show(b.dataset.view)));
+
+/* ---------- breathing ---------- */
+let breathTimer=null;
+$('#breathBtn').addEventListener('click',()=>{
+  const c=$('#circle'), btn=$('#breathBtn');
+  if(breathTimer){clearInterval(breathTimer);breathTimer=null;c.textContent='Ready';c.classList.remove('in');btn.textContent='Start';return;}
+  const phases=['Breathe in','Hold','Breathe out','Hold']; let i=0, ticks=0, count=4;
+  btn.textContent='Stop';
+  const tick=()=>{
+    if(count===4){ if(i===0)c.classList.add('in'); if(i===2)c.classList.remove('in'); }
+    c.textContent=phases[i]+' · '+count;
+    count--; if(count===0){count=4;i=(i+1)%4;}
+    ticks++; if(ticks>=64){clearInterval(breathTimer);breathTimer=null;c.classList.remove('in');c.textContent='Nice work';btn.textContent='Start again';}
+  };
+  tick(); breathTimer=setInterval(tick,1000);
+});
+
+/* ---------- toast ---------- */
+let tt=null;
+function toast(msg){const t=$('#toast');t.textContent=msg;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,2400);}
+
+function renderAll(){
+  const entries=Object.values(state.entries);
+  $('#sampleBanner').hidden=!entries.some(e=>e.sample);
+  $('#emptyBanner').hidden=entries.length>0;
+  renderStats(); renderChart(); renderInsights(); renderHistory(); renderPlan();
+}
+
+$('#refs').innerHTML=RESEARCH.map(r=>`<li><a href="${r.url}" target="_blank" rel="noopener">${r.cite}</a>. ${r.title}. <i>${r.journal}</i>.<br><span class="muted">${r.finding}</span></li>`).join('');
+fillForm(ymd(new Date()));
+renderAll();
+})();
+</script>
+
+</body>
+</html>
