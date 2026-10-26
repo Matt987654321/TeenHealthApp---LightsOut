@@ -2,7 +2,6 @@
 //
 // The website sends a student's recent check-ins here. This server adds the
 // secret API key, asks Claude for 3 recommendations, and sends them back.
-// The API key never reaches the browser.
 //
 // Settings (Cloudflare dashboard > your Worker > Settings > Variables and Secrets):
 //   ANTHROPIC_API_KEY  (Secret)  your Claude API key
